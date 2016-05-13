@@ -2,7 +2,7 @@
 
 usage() {
     cat <<EOF
-$0 [-t KEY_TYPE] [-b KEY_BITS] [-c KEY_COMMENT] [-u SSH_USERNAME] [-p SSH_PUBKEY] SECRET_NAME
+$0 [-t KEY_TYPE] [-b KEY_BITS] [-c KEY_COMMENT] [-u SSH_USERNAME] [-p SSH_PUBKEY] [-d SSH_HOMEDIR] SECRET_NAME
 
 This script generates a ssh key and two secrets SECRET_NAME and 
 SECRET_NAME-pub. The latter only includes the public key.
@@ -13,6 +13,7 @@ OPTIONS:
  * KEY_COMMENT is the comment of the key
  * SSH_PUBKEY is the key to use
  * SSH_USERNAME is the username to use
+ * SSH_HOMEDIR is the homedir to use
  * SECRET_NAME is the secret name to generate
 EOF
 }
@@ -67,6 +68,13 @@ while getopts "t:b:u:c:p:" flag; do
             fi
             SSH_PUBKEY=$OPTARG
             ;;
+        d)
+            if [ -z ${OPTARG} ]; then
+                log "Missing argument SSH_HOMEDIR for -d"
+                exit 1
+            fi
+            SSH_HOMEDIR=$OPTARG
+            ;;
     esac
 done
 shift $(( OPTIND - 1 ))
@@ -81,14 +89,19 @@ if [ -z ${SECRET_NAME} ]; then
     exit 1
 fi
 
-SSH_USERNAME=${SSH_USERNAME-${SECRET_NAME}}
 KEY_TYPE=${KEY_TYPE-ed25519}
 KEY_BITS=${KEY_BITS-}
 KEY_COMMENTS=${KEY_COMMENTS-}
 
 keydir=$(mktemp -d)
 
-echo -n $SSH_USERNAME > $keydir/username
+if [ -n "$SSH_USERNAME" ]; then
+    echo -n $SSH_USERNAME > $keydir/username
+fi
+
+if [ -n "$SSH_HOMEDIR" ]; then
+    echo -n $SSH_HOMEDIR > $keydir/homedir
+fi
 
 if [ -z $SSH_PUBKEY ]; then
     gen_sshkey

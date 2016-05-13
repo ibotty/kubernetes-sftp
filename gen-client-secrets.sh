@@ -2,7 +2,7 @@
 
 usage() {
     cat <<EOF
-$0 [-t KEY_TYPE] [-b KEY_BITS] [-c KEY_COMMENT] [-u SSH_USERNAME] SECRET_NAME
+$0 [-t KEY_TYPE] [-b KEY_BITS] [-c KEY_COMMENT] [-u SSH_USERNAME] [-p SSH_PUBKEY] SECRET_NAME
 
 This script generates a ssh key and two secrets SECRET_NAME and 
 SECRET_NAME-pub. The latter only includes the public key.
@@ -11,6 +11,7 @@ OPTIONS:
  * KEY_TYPE is one of ed25519, rsa, rsa1, dsa or ecdsa
  * KEY_BITS is usually one of 2048, 3072, 4096
  * KEY_COMMENT is the comment of the key
+ * SSH_PUBKEY is the key to use
  * SSH_USERNAME is the username to use
  * SECRET_NAME is the secret name to generate
 EOF
@@ -29,7 +30,7 @@ gen_sshkey() {
 }
 
 
-while getopts "t:b:u:" flag; do
+while getopts "t:b:u:c:p:" flag; do
     case "$flag" in
         t)
             if [ -z ${OPTARG} ]; then
@@ -59,6 +60,13 @@ while getopts "t:b:u:" flag; do
             fi
             SSH_USERNAME=$OPTARG
             ;;
+        p)
+            if [ -z ${OPTARG} ]; then
+                log "Missing argument SSH_PUBKEY for -p"
+                exit 1
+            fi
+            SSH_PUBKEY=$OPTARG
+            ;;
     esac
 done
 shift $(( OPTIND - 1 ))
@@ -79,11 +87,19 @@ KEY_BITS=${KEY_BITS-}
 KEY_COMMENTS=${KEY_COMMENTS-}
 
 keydir=$(mktemp -d)
-gen_sshkey
+
 echo -n $SSH_USERNAME > $keydir/username
 
-oc secrets new $SECRET_NAME $keydir
-rm $keydir/ssh-privatekey
+if [ -z $SSH_PUBKEY ]; then
+    gen_sshkey
+
+    # generate private key secret
+    oc secrets new $SECRET_NAME $keydir
+    rm $keydir/ssh-privatekey
+else
+    cp "$SSH_PUBKEY" $keydir/ssh-publickey
+fi
+
 oc secrets new ${SECRET_NAME}-pub $keydir
 
 rm -r $keydir

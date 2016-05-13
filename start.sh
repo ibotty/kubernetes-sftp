@@ -85,7 +85,11 @@ generate_setup_passwd_sshkeys() {
         fi
 
         if [ -f "$entry/ssh-publickey" ]; then
-            homedir=/home/$username
+            if [ -f "$entry/homedir" ]; then
+                homedir="$(<$entry/homedir)"
+            else
+                homedir=/home/$username
+            fi
 
             if run_as_root ; then
                 running_uid=$(($running_uid + 1))

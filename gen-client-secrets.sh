@@ -31,7 +31,7 @@ gen_sshkey() {
 }
 
 
-while getopts "t:b:u:c:p:" flag; do
+while getopts "t:b:u:c:p:d:" flag; do
     case "$flag" in
         t)
             if [ -z ${OPTARG} ]; then

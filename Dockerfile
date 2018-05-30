@@ -1,5 +1,5 @@
 FROM centos:7
-MAINTAINER Tobias Florek tob@butter.sh
+LABEL MAINTAINER="Tobias Florek <tob@butter.sh>"
 
 EXPOSE 22/tcp
 ENV SSHD_USER 1000

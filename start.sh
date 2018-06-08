@@ -1,4 +1,6 @@
-#!/bin/bash -ex
+#!/bin/bash
+set -eux
+set -o pipefail
 
 SSH_PORT="${SSH_PORT-2222}"
 CHROOT_USERS="${CHROOT_USERS-yes}"
@@ -7,8 +9,8 @@ LOG_LEVEL="${LOG_LEVEL-INFO}"
 
 main() {
     generate_setup_passwd_sshkeys
-    sshd_config > $SSHDIR/sshd_config.conf
-    exec /usr/sbin/sshd -Def $SSHDIR/sshd_config.conf
+    sshd_config > "$SSHDIR/sshd_config.conf"
+    exec /usr/sbin/sshd -Def "$SSHDIR/sshd_config.conf"
 }
 
 is_true() {
@@ -68,47 +70,47 @@ generate_setup_passwd_sshkeys() {
     fi
 
     if is_true "$USE_SEPARATE_AUTHORIZED_KEYS"; then
-        mkdir -p $SSHDIR/authorized_keys
-        chmod 700 $SSHDIR/authorized_keys
+        mkdir -p "$SSHDIR/authorized_keys"
+        chmod 700 "$SSHDIR/authorized_keys"
     fi
 
     for entry in /etc/credentials/*; do
-        if [ -f $entry/username ] ; then
-            username="$(<$entry/username)"
+        if [ -f "$entry/username" ] ; then
+            username="$(<"$entry/username")"
         else
-            username="$(basename $entry)"
+            username="$(basename "$entry")"
         fi
 
         if [ -f "$entry/ssh-publickey" ]; then
             if [ -f "$entry/homedir" ]; then
-                homedir="$(<$entry/homedir)"
+                homedir="$(<"$entry/homedir")"
             else
-                homedir=/home/$username
+                homedir="/home/$username"
             fi
 
             if run_as_root ; then
-                running_uid=$(($running_uid + 1))
+                running_uid=$((running_uid + 1))
                 if is_true "$CHROOT_USERS"; then
-                    chown root $homedir
+                    chown root "$homedir"
                 else
-                    chown $running_uid $homedir
+                    chown "$running_uid" "$homedir"
                 fi
             fi
             echo "$username:x:$running_uid:$(id -g):generated user:$homedir:/bin/bash" \
                 >> /etc/passwd
 
 
-            authorized_keys_filename=$(authorized_keys_file $username)
+            authorized_keys_filename=$(authorized_keys_file "$username")
             if ! is_true "$USE_SEPARATE_AUTHORIZED_KEYS"; then
-                mkdir -p $homedir/.ssh
-                chmod 0700 $homedir/.ssh
+                mkdir -p "$homedir/.ssh"
+                chmod 0700 "$homedir/.ssh"
             fi
 
-            pubkey="$(<$entry/ssh-publickey)"
-            if [ -f $entry/ssh-keyoptions ]; then
-                pubkey="$(<$entry/ssh-keyoptions) ${pubkey}"
+            pubkey="$(<"$entry/ssh-publickey")"
+            if [ -f "$entry/ssh-keyoptions" ]; then
+                pubkey="$(<"$entry/ssh-keyoptions") ${pubkey}"
             fi
-            printf "%s\n" "$pubkey" >> $authorized_keys_filename
+            printf "%s\n" "$pubkey" >> "$authorized_keys_filename"
         else
             log "ignoring credentials $username"
         fi
@@ -123,7 +125,7 @@ log() {
 }
 
 run_as_root() {
-    [ $(id -u) -eq 0 ]
+    [ "$(id -u)" -eq 0 ]
 }
 
 main

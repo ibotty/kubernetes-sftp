@@ -5,9 +5,6 @@ CHROOT_USERS="${CHROOT_USERS-yes}"
 USE_SEPARATE_AUTHORIZED_KEYS="${USE_SEPARATE_AUTHORIZED_KEYS-yes}"
 LOG_LEVEL="${LOG_LEVEL-INFO}"
 
-export NSS_WRAPPER_PASSWD="$SSHDIR/passwd"
-export NSS_WRAPPER_GROUP=/etc/group
-
 main() {
     generate_setup_passwd_sshkeys
     sshd_config > $SSHDIR/sshd_config.conf
@@ -64,12 +61,10 @@ EOF
 
 generate_setup_passwd_sshkeys() {
     if run_as_root ; then
-        running_uid=$SSHD_USER
-        cat /etc/passwd > $NSS_WRAPPER_PASSWD
+        running_uid="$SSHD_USER"
     else
         running_uid=$(id -u)
-        sed "/^sshd_user:/s/:$SSHD_USER:/:$running_uid:/" /etc/passwd \
-            > $NSS_WRAPPER_PASSWD
+        sed -i "/^sshd_user:/s/:$SSHD_USER:/:$running_uid:/" /etc/passwd
     fi
 
     if is_true "$USE_SEPARATE_AUTHORIZED_KEYS"; then
@@ -100,7 +95,7 @@ generate_setup_passwd_sshkeys() {
                 fi
             fi
             echo "$username:x:$running_uid:$(id -g):generated user:$homedir:/bin/bash" \
-                >> $NSS_WRAPPER_PASSWD
+                >> /etc/passwd
 
 
             authorized_keys_filename=$(authorized_keys_file $username)
